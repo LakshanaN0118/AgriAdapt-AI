@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgriAdapt AI – Climate-Resilient Crop Recommendation</title>
+  <script src="knowledge-base.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      background: #f0f4f0;
+      color: #1f2328;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #1a5c38;
+      color: #fff;
+      padding: 28px 24px 22px;
+      text-align: center;
+    }
+    header .sdg-badge {
+      display: inline-block;
+      background: #f5a623;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      margin-bottom: 6px;
+    }
+    header h1 span { color: #7dd87d; }
+    header p {
+      font-size: 13.5px;
+      opacity: .85;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 820px;
+      margin: 32px auto;
+      padding: 0 16px 48px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border: 1px solid #d6e4d6;
+      border-radius: 10px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1a5c38;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .icon {
+      width: 22px; height: 22px;
+      background: #e8f5e9;
+      border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+    }
+
+    /* ── Form ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    @media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      letter-spacing: .01em;
+    }
+    .field select, .field input {
+      border: 1px solid #cdd8cd;
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 14px;
+      color: #1f2328;
+      background: #fafcfa;
+      transition: border-color .15s;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23555' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 10px;
+    }
+    .field input {
+      background-image: none;
+    }
+    .field select:focus, .field input:focus {
+      outline: none;
+      border-color: #1a5c38;
+    }
+
+    .btn-analyze {
+      display: block;
+      width: 100%;
+      margin-top: 24px;
+      padding: 13px;
+      background: #1a5c38;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: .02em;
+      transition: background .15s;
+    }
+    .btn-analyze:hover { background: #15492d; }
+    .btn-analyze:active { background: #0f3420; }
+
+    /* ── Results ── */
+    #results { display: none; }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .results-header h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1a5c38;
+    }
+    .results-header .crop-tag {
+      margin-left: auto;
+      background: #1a5c38;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 20px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    /* Summary row */
+    .summary-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    @media (max-width: 560px) { .summary-row { grid-template-columns: 1fr; } }
+
+    .summary-chip {
+      background: #f0f7f0;
+      border: 1px solid #c8dfc8;
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .summary-chip .chip-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #57606a;
+      margin-bottom: 4px;
+    }
+    .summary-chip .chip-value {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #1a5c38;
+    }
+    .chip-risk-high   .chip-value { color: #b91c1c; }
+    .chip-risk-medium .chip-value { color: #b45309; }
+    .chip-risk-low    .chip-value { color: #1a5c38; }
+
+    /* Detail sections */
+    .detail-section { margin-bottom: 18px; }
+    .detail-section h3 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #57606a;
+      margin-bottom: 6px;
+    }
+    .detail-section p {
+      font-size: 14.5px;
+      color: #1f2328;
+      background: #fafcfa;
+      border-left: 3px solid #1a5c38;
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+    }
+
+    /* Badges row */
+    .badges-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .badge {
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+      letter-spacing: .02em;
+    }
+    .badge-green  { background: #dcfce7; color: #15803d; }
+    .badge-blue   { background: #dbeafe; color: #1d4ed8; }
+    .badge-orange { background: #ffedd5; color: #c2410c; }
+
+    /* Responsible AI notice */
+    .ai-notice {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 13.5px;
+      color: #78350f;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .ai-notice .notice-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .ai-notice strong { display: block; margin-bottom: 2px; }
+
+    .kb-section {
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 6px;
+    }
+    .kb-section h3 {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #15803d;
+      margin-bottom: 8px;
+    }
+    .kb-entry { margin-bottom: 8px; }
+    .kb-entry:last-child { margin-bottom: 0; }
+    .kb-entry .kb-topic {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a5c38;
+      margin-bottom: 2px;
+    }
+    .kb-entry .kb-desc {
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.55;
+    }
+    .kb-source-note {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 8px;
+      font-style: italic;
+    }
+
+    /* ── Explainable AI section ── */
+    .xai-section {
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      background: #f5f3ff;
+      border: 1px solid #ddd6fe;
+      border-radius: 6px;
+    }
+    .xai-section h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #4c1d95;
+      margin-bottom: 14px;
+    }
+    .xai-row {
+      margin-bottom: 12px;
+    }
+    .xai-row:last-child { margin-bottom: 0; }
+    .xai-row-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #6d28d9;
+      margin-bottom: 4px;
+    }
+    .xai-row-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #3b0764;
+      margin-bottom: 3px;
+    }
+    .xai-row-explain {
+      font-size: 13.5px;
+      color: #1f2328;
+      background: #fff;
+      border-left: 3px solid #7c3aed;
+      padding: 8px 12px;
+      border-radius: 0 5px 5px 0;
+      line-height: 1.55;
+    }
+    .xai-rag-topics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 5px;
+    }
+    .xai-rag-badge {
+      background: #ede9fe;
+      color: #5b21b6;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 11px;
+      border-radius: 20px;
+      letter-spacing: .02em;
+    }
+    .xai-final-explain {
+      font-size: 14px;
+      color: #1f2328;
+      background: #fff;
+      border-left: 3px solid #7c3aed;
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      line-height: 1.65;
+      margin-bottom: 10px;
+    }
+    .xai-transparency-note {
+      font-size: 12px;
+      color: #6b7280;
+      font-style: italic;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      padding: 8px 12px;
+      margin-top: 10px;
+      line-height: 1.55;
+    }
+
+    /* ── Alternative Crop Options section ── */
+    .alt-section {
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      background: #fffbf0;
+      border: 1px solid #fde68a;
+      border-radius: 6px;
+    }
+    .alt-section > h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 4px;
+    }
+    .alt-section > .alt-section-sub {
+      font-size: 13px;
+      color: #78350f;
+      margin-bottom: 14px;
+    }
+    .alt-card {
+      background: #fff;
+      border: 1px solid #fcd34d;
+      border-radius: 7px;
+      padding: 13px 15px;
+      margin-bottom: 10px;
+    }
+    .alt-card:last-of-type { margin-bottom: 0; }
+    .alt-card-header {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .alt-card-name {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #1f2328;
+    }
+    .alt-card-category {
+      font-size: 11.5px;
+      font-weight: 600;
+      background: #fef3c7;
+      color: #92400e;
+      padding: 2px 9px;
+      border-radius: 20px;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+    .alt-field-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #b45309;
+      margin-bottom: 2px;
+      margin-top: 7px;
+    }
+    .alt-field-text {
+      font-size: 13px;
+      color: #1f2328;
+      line-height: 1.55;
+    }
+    .alt-consider {
+      font-size: 13px;
+      color: #1f2328;
+      background: #fffbeb;
+      border-left: 3px solid #f59e0b;
+      padding: 7px 11px;
+      border-radius: 0 5px 5px 0;
+      margin-top: 7px;
+      line-height: 1.55;
+    }
+    .alt-disclaimer {
+      font-size: 12px;
+      color: #6b7280;
+      font-style: italic;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      padding: 8px 12px;
+      margin-top: 12px;
+      line-height: 1.55;
+    }
+
+    /* ── Field Sustainability Assessment dashboard ── */
+    .assess-card {
+      background: #fff;
+      border: 1px solid #c7d7fd;
+      border-radius: 10px;
+      padding: 22px 28px;
+      margin-bottom: 24px;
+    }
+    .assess-header {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .assess-header h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin: 0;
+    }
+    .assess-header .assess-proto-pill {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 2px 9px;
+      border-radius: 20px;
+      margin-left: auto;
+    }
+    .assess-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 560px) { .assess-grid { grid-template-columns: 1fr; } }
+    .assess-tile {
+      border-radius: 8px;
+      padding: 13px 15px;
+      background: #f8faff;
+      border: 1px solid #e0e7ff;
+      border-left-width: 4px;
+    }
+    .assess-tile-risk    { border-left-color: #dc2626; }
+    .assess-tile-water   { border-left-color: #0891b2; }
+    .assess-tile-nutr    { border-left-color: #7c3aed; }
+    .assess-tile-sustain { border-left-color: #059669; }
+    .assess-tile-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 5px;
+    }
+    .assess-tile-icon { font-size: 15px; line-height: 1; flex-shrink: 0; }
+    .assess-tile-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #57606a;
+    }
+    .assess-tile-value {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #1f2328;
+      margin-bottom: 3px;
+    }
+    .assess-tile-status {
+      display: inline-block;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-bottom: 6px;
+    }
+    .status-high   { background: #fee2e2; color: #991b1b; }
+    .status-medium { background: #fef3c7; color: #92400e; }
+    .status-low    { background: #dcfce7; color: #166534; }
+    .status-blue   { background: #dbeafe; color: #1e40af; }
+    .status-teal   { background: #ccfbf1; color: #0f766e; }
+    .status-purple { background: #ede9fe; color: #5b21b6; }
+    .assess-tile-body {
+      font-size: 12.5px;
+      color: #374151;
+      line-height: 1.55;
+    }
+    .assess-summary-bar {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 7px;
+      padding: 11px 14px;
+      font-size: 13.5px;
+      color: #1e3a8a;
+      line-height: 1.6;
+    }
+    .assess-summary-bar strong { font-weight: 700; }
+    .assess-note {
+      font-size: 11.5px;
+      color: #6b7280;
+      font-style: italic;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    /* ── Sustainability Guidance section ── */
+    .sust-section {
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 6px;
+    }
+    .sust-section > h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0f766e;
+      margin-bottom: 4px;
+    }
+    .sust-section > .sust-section-sub {
+      font-size: 13px;
+      color: #134e4a;
+      margin-bottom: 14px;
+    }
+    .sust-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 560px) { .sust-grid { grid-template-columns: 1fr; } }
+    .sust-card {
+      background: #fff;
+      border: 1px solid #5eead4;
+      border-radius: 7px;
+      padding: 12px 14px;
+    }
+    .sust-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .sust-card-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .sust-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f766e;
+    }
+    .sust-card-body {
+      font-size: 13px;
+      color: #1f2328;
+      line-height: 1.6;
+      border-left: 3px solid #5eead4;
+      padding-left: 10px;
+    }
+    .sust-disclaimer {
+      font-size: 12px;
+      color: #6b7280;
+      font-style: italic;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      padding: 8px 12px;
+      margin-top: 12px;
+      line-height: 1.55;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      font-size: 12px;
+      color: #57606a;
+      padding: 20px 16px 28px;
+      border-top: 1px solid #e5e7eb;
+      margin-top: 8px;
+    }
+    footer span { color: #1a5c38; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="sdg-badge">SDG 2 — Zero Hunger</div>
+  <h1>AgriAdapt <span>AI</span></h1>
+  <p>AI-Powered Climate-Resilient Crop Recommendation &mdash; supporting food security through data-informed decision support.</p>
+</header>
+
+<div class="container">
+
+  <!-- INPUT FORM -->
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">🌱</span> Farm &amp; Climate Profile
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="location">Location / Region</label>
+        <input type="text" id="location" placeholder="e.g. Sub-Saharan Africa, South Asia…" />
+      </div>
+
+      <div class="field">
+        <label for="soil">Soil Type</label>
+        <select id="soil">
+          <option value="">— Select soil type —</option>
+          <option value="sandy">Sandy</option>
+          <option value="clay">Clay</option>
+          <option value="loamy">Loamy</option>
+          <option value="silt">Silty</option>
+          <option value="peaty">Peaty</option>
+          <option value="chalky">Chalky / Alkaline</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="water">Water Availability</label>
+        <select id="water">
+          <option value="">— Select availability —</option>
+          <option value="scarce">Scarce (rainfed, drought-prone)</option>
+          <option value="moderate">Moderate (seasonal rain)</option>
+          <option value="adequate">Adequate (irrigation access)</option>
+          <option value="excess">Excess / Flood-prone</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="risk">Main Climate Risk</label>
+        <select id="risk">
+          <option value="">— Select risk —</option>
+          <option value="drought">Drought</option>
+          <option value="flood">Flooding</option>
+          <option value="heat">Extreme Heat</option>
+          <option value="salinity">Soil Salinity</option>
+          <option value="frost">Frost / Cold Stress</option>
+          <option value="erosion">Soil Erosion</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="nutrition">Primary Nutritional Concern</label>
+        <select id="nutrition">
+          <option value="">— Select concern —</option>
+          <option value="caloric">Caloric insufficiency</option>
+          <option value="protein">Protein deficiency</option>
+          <option value="iron">Iron deficiency (anaemia)</option>
+          <option value="vitamin_a">Vitamin A deficiency</option>
+          <option value="zinc">Zinc deficiency</option>
+          <option value="balanced">Balanced diet / general</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="current_crop">Current Crop (if any)</label>
+        <input type="text" id="current_crop" placeholder="e.g. Maize, Rice, None…" />
+      </div>
+    </div>
+
+    <button class="btn-analyze" onclick="analyze()">🔍 Analyze &amp; Recommend</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+    <div class="card">
+      <div class="results-header">
+        <h2>📊 Recommendation Report</h2>
+        <span class="crop-tag" id="cropTag">—</span>
+      </div>
+
+      <!-- Summary chips -->
+      <div class="summary-row">
+        <div class="summary-chip" id="chipRisk">
+          <div class="chip-label">Climate Risk Level</div>
+          <div class="chip-value" id="chipRiskVal">—</div>
+        </div>
+        <div class="summary-chip">
+          <div class="chip-label">Nutritional Priority</div>
+          <div class="chip-value" id="chipNutrition">—</div>
+        </div>
+        <div class="summary-chip">
+          <div class="chip-label">Recommended Category</div>
+          <div class="chip-value" id="chipCategory">—</div>
+        </div>
+      </div>
+
+      <!-- Detail sections -->
+      <div class="detail-section">
+        <h3>🌡 Climate Risk Analysis</h3>
+        <p id="detailRisk">—</p>
+      </div>
+      <div class="detail-section">
+        <h3>🥦 Nutritional Priority</h3>
+        <p id="detailNutrition">—</p>
+      </div>
+      <div class="detail-section">
+        <h3>💡 Why This Recommendation</h3>
+        <p id="detailWhy">—</p>
+      </div>
+      <div class="detail-section">
+        <h3>🌾 Nutritional Benefit</h3>
+        <p id="detailNutBenefit">—</p>
+      </div>
+      <div class="detail-section">
+        <h3>☀️ Climate Resilience</h3>
+        <p id="detailResilience">—</p>
+      </div>
+      <div class="detail-section">
+        <h3>♻️ Sustainability Advice</h3>
+        <p id="detailSustain">—</p>
+      </div>
+
+      <!-- Trait badges -->
+      <div class="badges-row" id="traitBadges"></div>
+
+      <!-- Knowledge Retrieved -->
+      <div class="kb-section" id="kbSection">
+        <h3>📚 Knowledge Retrieved</h3>
+        <div id="kbEntries"></div>
+        <p class="kb-source-note">Retrieved from local knowledge base · rule-based system · no ML model or external API</p>
+      </div>
+
+      <!-- Explainable AI Decision Analysis -->
+      <div class="xai-section" id="xaiSection">
+        <h3>🔍 Explainable AI Decision Analysis</h3>
+
+        <!-- 1. Climate Risk -->
+        <div class="xai-row" id="xaiRiskRow">
+          <div class="xai-row-label">1 · Climate Risk Consideration</div>
+          <div class="xai-row-value" id="xaiRiskValue">—</div>
+          <div class="xai-row-explain" id="xaiRiskExplain">—</div>
+        </div>
+
+        <!-- 2. Water Availability -->
+        <div class="xai-row" id="xaiWaterRow">
+          <div class="xai-row-label">2 · Water Availability Consideration</div>
+          <div class="xai-row-value" id="xaiWaterValue">—</div>
+          <div class="xai-row-explain" id="xaiWaterExplain">—</div>
+        </div>
+
+        <!-- 3. Nutrition Priority -->
+        <div class="xai-row" id="xaiNutritionRow">
+          <div class="xai-row-label">3 · Nutrition Priority</div>
+          <div class="xai-row-value" id="xaiNutritionValue">—</div>
+          <div class="xai-row-explain" id="xaiNutritionExplain">—</div>
+        </div>
+
+        <!-- 4. Soil Consideration -->
+        <div class="xai-row" id="xaiSoilRow">
+          <div class="xai-row-label">4 · Soil Consideration</div>
+          <div class="xai-row-value" id="xaiSoilValue">—</div>
+          <div class="xai-row-explain" id="xaiSoilExplain">—</div>
+        </div>
+
+        <!-- 5. RAG Evidence -->
+        <div class="xai-row" id="xaiRagRow">
+          <div class="xai-row-label">5 · RAG Evidence — Knowledge-Base Topics Retrieved</div>
+          <div class="xai-rag-topics" id="xaiRagTopics"></div>
+        </div>
+
+        <!-- 6. Final Decision Explanation -->
+        <div class="xai-row" id="xaiFinalRow">
+          <div class="xai-row-label">6 · Final Decision Explanation</div>
+          <div class="xai-final-explain" id="xaiFinalExplain">—</div>
+        </div>
+
+        <p class="xai-transparency-note">
+          This is a transparent, rule-based prototype. The explanation shows how the prototype uses the provided inputs and retrieved knowledge. It is not a scientific prediction or a substitute for local agricultural expertise.
+        </p>
+      </div>
+
+      <!-- Alternative Crop Options -->
+      <div class="alt-section" id="altSection">
+        <h3>🌾 Alternative Crop Options</h3>
+        <p class="alt-section-sub">These are alternative options from the prototype crop library that may suit your conditions. They are not guaranteed recommendations.</p>
+        <div id="altCards"></div>
+        <p class="alt-disclaimer">Alternative options are prototype suggestions based on the available rule-based crop profiles. Actual suitability should be validated using local agricultural expertise and field conditions.</p>
+      </div>
+
+      <!-- Sustainability Guidance -->
+      <div class="sust-section" id="sustSection">
+        <h3>🌱 Sustainability Guidance</h3>
+        <p class="sust-section-sub">Practical sustainability considerations based on your selected conditions and recommended crop.</p>
+        <div class="sust-grid" id="sustCards"></div>
+        <p class="sust-disclaimer">Sustainability guidance is provided as prototype decision support. Actual farming practices should be adapted to local soil, climate, water conditions and agricultural expertise.</p>
+      </div>
+
+      <!-- Responsible AI notice -->
+      <div class="ai-notice">
+        <span class="notice-icon">⚠️</span>
+        <div>
+          <strong>Responsible AI Notice</strong>
+          This recommendation is generated by a transparent rule-based decision-support system, not a trained machine-learning model. It is intended as a starting point for discussion only and should be validated by qualified local agricultural experts, extension officers, and regional agronomic data before any farming decisions are made.
+        </div>
+      </div>
+    </div>
+
+    <!-- Field Sustainability Assessment (second card inside #results) -->
+    <div class="assess-card" id="assessCard">
+      <div class="assess-header">
+        <h2>📊 Field Sustainability Assessment</h2>
+        <span class="assess-proto-pill">Prototype indicator</span>
+      </div>
+      <div class="assess-grid">
+        <!-- 1. Climate Risk -->
+        <div class="assess-tile assess-tile-risk" id="assessTileRisk">
+          <div class="assess-tile-header">
+            <span class="assess-tile-icon">🌦️</span>
+            <span class="assess-tile-label">Climate Risk</span>
+          </div>
+          <div class="assess-tile-value" id="assessRiskValue">—</div>
+          <span class="assess-tile-status" id="assessRiskStatus">—</span>
+          <div class="assess-tile-body" id="assessRiskBody">—</div>
+        </div>
+        <!-- 2. Water Condition -->
+        <div class="assess-tile assess-tile-water" id="assessTileWater">
+          <div class="assess-tile-header">
+            <span class="assess-tile-icon">💧</span>
+            <span class="assess-tile-label">Water Condition</span>
+          </div>
+          <div class="assess-tile-value" id="assessWaterValue">—</div>
+          <span class="assess-tile-status" id="assessWaterStatus">—</span>
+          <div class="assess-tile-body" id="assessWaterBody">—</div>
+        </div>
+        <!-- 3. Nutrition Priority -->
+        <div class="assess-tile assess-tile-nutr" id="assessTileNutr">
+          <div class="assess-tile-header">
+            <span class="assess-tile-icon">🥗</span>
+            <span class="assess-tile-label">Nutrition Priority</span>
+          </div>
+          <div class="assess-tile-value" id="assessNutrValue">—</div>
+          <span class="assess-tile-status" id="assessNutrStatus">—</span>
+          <div class="assess-tile-body" id="assessNutrBody">—</div>
+        </div>
+        <!-- 4. Sustainability Focus -->
+        <div class="assess-tile assess-tile-sustain" id="assessTileSustain">
+          <div class="assess-tile-header">
+            <span class="assess-tile-icon">🌱</span>
+            <span class="assess-tile-label">Sustainability Focus</span>
+          </div>
+          <div class="assess-tile-value" id="assessSustainValue">—</div>
+          <span class="assess-tile-status" id="assessSustainStatus">—</span>
+          <div class="assess-tile-body" id="assessSustainBody">—</div>
+        </div>
+      </div>
+      <!-- Assessment Summary -->
+      <div class="assess-summary-bar" id="assessSummary">—</div>
+      <p class="assess-note">Assessment indicators are generated by the prototype's transparent rule-based logic and are intended for decision support, not scientific risk measurement.</p>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  AgriAdapt AI &mdash; Academic Sustainability Prototype &nbsp;|&nbsp;
+  <span>SDG 2: Zero Hunger</span> &nbsp;|&nbsp;
+  Rule-Based Decision Support System &nbsp;|&nbsp; Not a trained ML model
+</footer>
+
+<script>
+/* =====================================================================
+   AgriAdapt AI — Transparent Rule-Based Recommendation Engine
+   Logic: risk + soil + water + nutrition → crop category + rationale
+   No machine learning. All rules are explicit and auditable.
+   ===================================================================== */
+
+  const RISK_META = {
+    drought:  { level: "High",   label: "Drought",       text: "Drought is a severe threat to staple crop yields, causing widespread caloric and economic losses across rain-fed farming systems. Water-efficient or drought-tolerant varieties are essential." },
+    flood:    { level: "High",   label: "Flooding",      text: "Flooding can destroy root systems, cause anaerobic soil conditions, and spread crop disease. Flood-tolerant or elevated-bed cultivation strategies are needed." },
+    heat:     { level: "High",   label: "Extreme Heat",  text: "High temperatures accelerate crop maturation, reduce grain filling, and increase pest pressure. Heat-tolerant varieties with short growing cycles are prioritised." },
+    salinity: { level: "Medium", label: "Soil Salinity", text: "Elevated soil salinity limits water uptake and causes ion toxicity in many crops. Salt-tolerant species or soil amendment practices can mitigate impact." },
+    frost:    { level: "Medium", label: "Frost / Cold",  text: "Frost events damage tender tissues and can eliminate tropical crops entirely. Cold-hardy or frost-tolerant crops suited to short growing seasons are preferred." },
+    erosion:  { level: "Medium", label: "Soil Erosion",  text: "Soil erosion degrades topsoil fertility and reduces water retention capacity. Ground-cover crops and agroforestry practices help bind and restore soil." },
+  };
+
+  const NUTRITION_META = {
+    caloric:    { label: "Caloric Intake",    text: "Primary concern is insufficient caloric intake. High-yield starchy staples and legumes providing dense carbohydrate and energy content are prioritised." },
+    protein:    { label: "Protein",           text: "Protein deficiency impairs growth, immunity, and cognitive development. Legumes, pulses, and protein-rich grains address this gap effectively." },
+    iron:       { label: "Iron (Anaemia)",    text: "Iron-deficiency anaemia is prevalent, particularly among women and children. Biofortified crops, dark leafy greens, and legumes rich in non-haem iron are recommended." },
+    vitamin_a:  { label: "Vitamin A",         text: "Vitamin A deficiency causes preventable blindness and immune suppression. Orange-fleshed crops, dark leafy vegetables, and biofortified varieties are key solutions." },
+    zinc:       { label: "Zinc",              text: "Zinc deficiency affects immune function and child development. Zinc-biofortified crops, legumes, and diverse diets address this micronutrient gap." },
+    balanced:   { label: "Balanced Diet",     text: "The goal is dietary diversity and balance. A combination of staple grains, legumes, and vegetables provides macronutrients and micronutrients." },
+  };
+
+  /* ── Core recommendation rules ──────────────────────────────────────
+     Priority order: climate risk → soil → water → nutrition
+  */
+  function recommend(risk, soil, water, nutrition) {
+
+    // ── Drought scenarios ────────────────────────────────────────────
+    if (risk === "drought") {
+      if (nutrition === "protein" || nutrition === "zinc")
+        return cowpea();
+      if (nutrition === "vitamin_a")
+        return sweetPotato();
+      if (soil === "sandy")
+        return sorghum();
+      return millet();
+    }
+
+    // ── Flood scenarios ──────────────────────────────────────────────
+    if (risk === "flood") {
+      if (nutrition === "caloric" || nutrition === "balanced")
+        return floodRice();
+      if (nutrition === "protein")
+        return aquaticLegume();
+      return taro();
+    }
+
+    // ── Extreme heat ─────────────────────────────────────────────────
+    if (risk === "heat") {
+      if (nutrition === "caloric")
+        return sorghum();
+      if (nutrition === "protein")
+        return cowpea();
+      if (nutrition === "vitamin_a")
+        return sweetPotato();
+      return millet();
+    }
+
+    // ── Salinity ─────────────────────────────────────────────────────
+    if (risk === "salinity") {
+      if (nutrition === "caloric" || nutrition === "balanced")
+        return barley();
+      if (nutrition === "iron" || nutrition === "zinc")
+        return quinoa();
+      return mangroveRice();
+    }
+
+    // ── Frost / Cold ─────────────────────────────────────────────────
+    if (risk === "frost") {
+      if (nutrition === "caloric")
+        return potato();
+      if (nutrition === "protein")
+        return broadBean();
+      return quinoa();
+    }
+
+    // ── Erosion ──────────────────────────────────────────────────────
+    if (risk === "erosion") {
+      if (soil === "sandy" || soil === "silt")
+        return coverCrop();
+      if (nutrition === "caloric")
+        return cassava();
+      return moringa();
+    }
+
+    // ── Default (no specific risk selected) ─────────────────────────
+    if (nutrition === "protein")    return cowpea();
+    if (nutrition === "vitamin_a")  return sweetPotato();
+    if (nutrition === "caloric")    return maize();
+    return maize();
+  }
+
+  /* ── Crop profiles ──────────────────────────────────────────────── */
+  function millet() {
+    return {
+      category:    "Drought-Tolerant Cereal",
+      crop:        "Pearl Millet (Pennisetum glaucum)",
+      why:         "Pearl millet is one of the most heat- and drought-tolerant cereals available, performing well in low-rainfall, high-temperature environments where maize fails. Its short growing cycle makes it suited for unpredictable rainfall windows.",
+      nutBenefit:  "Rich in complex carbohydrates, iron, zinc, and B-vitamins. Provides sustained energy and addresses multiple micronutrient deficiencies common in dryland communities.",
+      resilience:  "Survives on as little as 150–500 mm annual rainfall. Thrives in sandy, low-fertility soils. Heat tolerance up to 42°C during grain filling.",
+      sustain:     "Practice intercropping millet with cowpea to fix nitrogen and improve soil health. Retain crop residues as mulch to reduce soil moisture loss and prevent erosion.",
+      traits:      ["Drought-Tolerant", "Low-Input", "Heat-Resistant", "Short-Season"],
+    };
+  }
+
+  function sorghum() {
+    return {
+      category:    "Drought-Tolerant Cereal",
+      crop:        "Sorghum (Sorghum bicolor)",
+      why:         "Sorghum has deep root systems that access subsoil moisture and a unique ability to become dormant during drought and recover once rain returns. Ideal for sandy soils with unreliable rainfall.",
+      nutBenefit:  "A calorie-dense whole grain providing protein (8–9%), iron, zinc, and antioxidants. White sorghum is especially suitable for food-insecure populations.",
+      resilience:  "Survives 300–750 mm rainfall. Sandy and loamy soils. Can resume growth after drought-induced dormancy — a critical trait for unpredictable climates.",
+      sustain:     "Implement conservation agriculture: minimum tillage, permanent soil cover, and crop rotation with legumes. Sorghum stalks are excellent livestock fodder, reducing waste.",
+      traits:      ["Deep-Rooted", "Drought-Hardy", "Sandy-Soil Adapted", "Multi-Use"],
+    };
+  }
+
+  function cowpea() {
+    return {
+      category:    "Heat-Tolerant Legume",
+      crop:        "Cowpea (Vigna unguiculata)",
+      why:         "Cowpea is a dual-purpose legume that fixes atmospheric nitrogen, improving soil fertility while providing high-protein food. It tolerates drought, heat, and poor soils better than most legumes.",
+      nutBenefit:  "Exceptional protein content (23–25%), rich in iron, zinc, folate, and dietary fibre. One of the best plant-based protein sources for protein and zinc-deficient populations.",
+      resilience:  "Tolerates temperatures up to 40°C. Requires only 200–500 mm rainfall. Grows in sandy, loamy, and clay soils with low fertility.",
+      sustain:     "Use cowpea as a rotation crop before cereals to reduce synthetic fertiliser needs. Leaves and young pods are edible, maximising plot productivity and dietary variety.",
+      traits:      ["High-Protein", "Nitrogen-Fixing", "Drought-Tolerant", "Heat-Hardy"],
+    };
+  }
+
+  function sweetPotato() {
+    return {
+      category:    "Biofortified Root Crop",
+      crop:        "Orange-Fleshed Sweet Potato (Ipomoea batatas)",
+      why:         "Orange-fleshed sweet potato (OFSP) is a proven biofortification solution for vitamin A deficiency. It is highly productive with minimal inputs and grows across a wide range of climates including drought-stressed regions.",
+      nutBenefit:  "A single medium OFSP can provide over 100% of a child's daily vitamin A requirement. Also rich in carbohydrates, vitamin C, potassium, and dietary fibre.",
+      resilience:  "Drought-tolerant once established. Thrives in sandy-loam soils. Resistant to moderate heat stress and produces even in degraded soils.",
+      sustain:     "Vine cuttings from one harvest are used for the next — zero seed cost. Intercrop with legumes for full canopy ground cover, reducing erosion and weed pressure.",
+      traits:      ["Vitamin A Rich", "Biofortified", "Low-Input", "Drought-Adapted"],
+    };
+  }
+
+  function floodRice() {
+    return {
+      category:    "Flood-Tolerant Staple",
+      crop:        "Flood-Tolerant Rice (Sub1A varieties, e.g. Swarna-Sub1)",
+      why:         "Sub1A rice varieties carry the SUB1 gene, allowing complete submergence survival for up to 17 days — compared to 3–4 days for conventional rice. This is critical for flood-prone smallholders who risk total yield loss.",
+      nutBenefit:  "Rice provides 20% of global dietary calories. Combined with legumes it forms a complete protein profile. Also provides B-vitamins and is easily digestible.",
+      resilience:  "Withstands complete flooding for 14–17 days with minimal yield loss. Performs identically to standard varieties under normal conditions — no yield penalty.",
+      sustain:     "Combine with System of Rice Intensification (SRI) practices: fewer seeds, alternate wetting-drying, and organic matter incorporation to reduce water use by 25–50%.",
+      traits:      ["Flood-Tolerant", "SUB1 Gene", "High-Yield", "Climate-Adapted"],
+    };
+  }
+
+  function taro() {
+    return {
+      category:    "Flood-Adapted Root Crop",
+      crop:        "Taro (Colocasia esculenta)",
+      why:         "Taro is naturally adapted to waterlogged and flooded conditions, making it one of the few starchy crops that thrives where excess moisture would kill other species. It is a reliable food security crop in flood-prone regions.",
+      nutBenefit:  "Rich in complex carbohydrates, dietary fibre, and vitamins B6 and C. The corms, leaves, and stems are all edible, maximising food output per plant.",
+      resilience:  "Naturally adapted to waterlogged soils and high humidity. Tolerates standing water for extended periods. Grows in tropical and sub-tropical flood plains.",
+      sustain:     "Interplant taro with nitrogen-fixing trees in an agroforestry system. Its large leaves provide natural ground cover, reducing evaporation from soil between flood events.",
+      traits:      ["Waterlogged-Tolerant", "Multi-Part Edible", "Tropical Adapted"],
+    };
+  }
+
+  function aquaticLegume() {
+    return {
+      category:    "Waterlogging-Tolerant Legume",
+      crop:        "Winged Bean (Psophocarpus tetragonolobus)",
+      why:         "The winged bean tolerates high moisture and waterlogged soils while providing an exceptional protein yield. All plant parts — leaves, pods, seeds, and tubers — are edible and protein-rich, ideal for flood-affected food-insecure communities.",
+      nutBenefit:  "Seeds contain 30–37% protein and 15–20% fat, rivalling soybean. Leaves have 10–15% protein. Rich in vitamin A, vitamin C, iron, and calcium.",
+      resilience:  "Tolerates high rainfall and humidity. Adapts to various tropical flood-prone and waterlogged soils. Nitrogen-fixing root nodules improve soil health.",
+      sustain:     "Grow on trellises to reduce lodging. Use as a cover crop and green manure between flood seasons to restore soil nitrogen and organic matter.",
+      traits:      ["High-Protein", "Flood-Adapted", "Whole-Plant Edible", "Nitrogen-Fixing"],
+    };
+  }
+
+  function barley() {
+    return {
+      category:    "Salt-Tolerant Cereal",
+      crop:        "Barley (Hordeum vulgare)",
+      why:         "Barley is the most salt-tolerant of all major cereal crops, performing where wheat and maize cannot survive. Its moderate water requirement makes it suitable for semi-arid, saline coastal, or irrigated soils with salt build-up.",
+      nutBenefit:  "Rich in beta-glucan (soluble fibre), which reduces cholesterol and supports gut health. Provides carbohydrates, protein (10–12%), B-vitamins, selenium, and zinc.",
+      resilience:  "Tolerates soil electrical conductivity (EC) up to 8 dS/m. Grows in loamy, sandy, and silty soils. Short growing cycle of 60–90 days allows flexible scheduling.",
+      sustain:     "Combine barley cultivation with salt leaching: flood irrigation followed by drainage cycles to progressively reduce soil salinity over seasons.",
+      traits:      ["Salt-Tolerant", "Short-Season", "Beta-Glucan Rich", "Low-Water"],
+    };
+  }
+
+  function quinoa() {
+    return {
+      category:    "Salt & Cold Tolerant Superfood",
+      crop:        "Quinoa (Chenopodium quinoa)",
+      why:         "Quinoa is uniquely tolerant of saline soils, frost, and drought. Its complete amino acid profile and dense micronutrient content make it one of the most nutritionally important climate-resilient crops available.",
+      nutBenefit:  "A complete protein containing all nine essential amino acids. Exceptionally high in iron, zinc, magnesium, manganese, and folate. Gluten-free and highly digestible.",
+      resilience:  "Tolerates salinity (EC up to 15 dS/m), frost down to −8°C, and drought. Grows in poor, alkaline soils at altitudes up to 4,000 m.",
+      sustain:     "Quinoa leaves are edible as a nutritious green vegetable. Wash seeds thoroughly to remove bitter saponins. Rotate with legumes to maintain soil nitrogen balance.",
+      traits:      ["Complete Protein", "Salt-Tolerant", "Frost-Hardy", "Micronutrient-Dense"],
+    };
+  }
+
+  function mangroveRice() {
+    return {
+      category:    "Salinity-Tolerant Rice",
+      crop:        "Mangrove / Coastal Rice (e.g. BRRI dhan67, Pokkali)",
+      why:         "Traditional saline-tolerant rice landraces and modern improved varieties such as Pokkali and BRRI dhan67 are bred for coastal and tidal flood plains with high salinity. They produce acceptable yields where standard rice fails completely.",
+      nutBenefit:  "Provides the caloric base (carbohydrates) essential for food security. Combine with fish, vegetables, and legumes in coastal diets for nutritional completeness.",
+      resilience:  "Tolerates soil salinity of 6–10 dS/m during seedling stage. Adapted to tidal flooding and brackish water intrusion in coastal delta systems.",
+      sustain:     "Integrate rice-shrimp or rice-fish systems in tidal zones to increase income and protein supply simultaneously, improving both nutrition and economic resilience.",
+      traits:      ["Saline-Adapted", "Coastal System", "Tidal Flood Tolerant"],
+    };
+  }
+
+  function potato() {
+    return {
+      category:    "Cold-Hardy Root Crop",
+      crop:        "Cold-Hardy Potato (Solanum tuberosum var.)",
+      why:         "Potato is the world's third most important food crop and is uniquely suited to cold, highland climates where most tropical staples cannot grow. Andean and European cold-tolerant varieties maintain yields under frost risk.",
+      nutBenefit:  "Calorie-dense, high in vitamin C, potassium, and B6. A medium potato provides ~40% daily vitamin C and significant dietary fibre when skin is consumed.",
+      resilience:  "Adapted to altitudes of 1,500–4,000 m. Tolerates frost down to −3°C at mature stage. Grows in well-drained loamy and silty soils.",
+      sustain:     "Use certified disease-free seed potatoes and practice crop rotation every 3–4 seasons to prevent late blight (Phytophthora infestans) build-up in soil.",
+      traits:      ["Cold-Hardy", "High-Yield", "Vitamin C Rich", "Highland Adapted"],
+    };
+  }
+
+  function broadBean() {
+    return {
+      category:    "Cool-Season Legume",
+      crop:        "Faba Bean / Broad Bean (Vicia faba)",
+      why:         "Faba bean is a cool-season, frost-tolerant legume that fixes nitrogen and provides high protein yields in temperate and highland regions. It thrives where warm-season legumes such as cowpea or soybean cannot survive.",
+      nutBenefit:  "Seeds contain 26–28% protein and are rich in iron, folate, zinc, and manganese. One of the best plant protein sources for cold-climate food security.",
+      resilience:  "Tolerates light frost and grows in cool, moist conditions (5–20°C optimal). Adapts to clay, loamy, and silty soils. Deep taproot improves soil structure.",
+      sustain:     "Intercrop with wheat or barley for a cereal-legume mixed system that improves land productivity, reduces disease pressure, and builds soil nitrogen.",
+      traits:      ["Frost-Tolerant", "High-Protein", "Nitrogen-Fixing", "Cool-Season"],
+    };
+  }
+
+  function cassava() {
+    return {
+      category:    "Erosion-Control Root Crop",
+      crop:        "Cassava (Manihot esculenta)",
+      why:         "Cassava's deep, robust root system holds soil on slopes, making it valuable in erosion-prone areas. As a food security crop it is unmatched for yield reliability under drought and degraded soil conditions.",
+      nutBenefit:  "Highly calorie-dense staple. Fermented or enriched cassava products (garri, fufu) can be combined with legumes and vegetables for dietary completeness.",
+      resilience:  "Produces reliably on degraded, sandy, and low-fertility soils. Drought-tolerant once established. Tolerates annual rainfall of 500–1,500 mm.",
+      sustain:     "Plant cassava on contour lines with grass strips between rows to control slope erosion. Intercrop with cowpea for ground cover, nitrogen input, and protein supplementation.",
+      traits:      ["Erosion-Control", "Drought-Tolerant", "Degraded-Soil Adapted", "High-Calorie"],
+    };
+  }
+
+  function coverCrop() {
+    return {
+      category:    "Soil-Restoring Cover Crop System",
+      crop:        "Vetiver Grass + Mucuna (Cover Crop Mix)",
+      why:         "In severely eroded sandy or silty soils, the priority must first be soil stabilisation before food crops can succeed. Vetiver grass hedgerows stop erosion, while mucuna (velvet bean) fixes nitrogen and builds organic matter, restoring the soil for future food crop production.",
+      nutBenefit:  "Mucuna seeds and leaves are edible and high in protein (25–30%) once properly detoxified. The system transitions into a food-producing system within 1–2 seasons.",
+      resilience:  "Vetiver withstands extreme drought, flooding, heat, and cold. Mucuna thrives in degraded tropical soils. Together they stabilise and rebuild degraded land.",
+      sustain:     "After 1–2 seasons of cover cropping, introduce cowpea or sweet potato as the primary food crop within the improved, stabilised soil. Monitor organic matter and pH annually.",
+      traits:      ["Erosion-Control Priority", "Soil-Restorative", "Nitrogen-Fixing", "Transitional System"],
+    };
+  }
+
+  function moringa() {
+    return {
+      category:    "Agroforestry Multipurpose Tree",
+      crop:        "Moringa (Moringa oleifera) + Intercrop",
+      why:         "Moringa is one of the most nutritionally dense plants on earth and acts as a natural soil conditioner through leaf litter and root activity. It stabilises eroded soils with its deep roots while providing year-round nutrition from leaves.",
+      nutBenefit:  "Dried moringa leaves contain 9× more iron than spinach, 17× more calcium than milk, and are rich in zinc, protein, vitamin A, and vitamin C — addressing multiple deficiencies simultaneously.",
+      resilience:  "Grows on poor, eroded, and dry soils. Drought-tolerant. Fast-growing: harvestable within 60 days. Wind-resistant in agroforestry hedgerow configurations.",
+      sustain:     "Plant moringa as hedgerows along field boundaries to serve as windbreaks, soil binders, and nutrient banks. Use leaf mulch to restore soil organic matter and moisture retention.",
+      traits:      ["Nutrient-Dense", "Fast-Growing", "Erosion-Control", "Drought-Hardy", "Agroforestry"],
+    };
+  }
+
+  function maize() {
+    return {
+      category:    "Improved Staple Cereal",
+      crop:        "Drought-Tolerant Maize (DTMA Varieties)",
+      why:         "Drought-Tolerant Maize for Africa (DTMA) varieties yield 20–30% more than conventional maize under moderate stress. For general food security needs without a specific acute climate risk, improved maize varieties remain the most important staple.",
+      nutBenefit:  "Provides carbohydrates, fibre, B-vitamins, and moderate protein. Fortified maize flour is an effective vehicle for iron, zinc, and vitamin A supplementation at population scale.",
+      resilience:  "DTMA varieties withstand 2–3 weeks of drought during critical growth stages. Suitable for loamy and clay soils with moderate rainfall (400–800 mm).",
+      sustain:     "Practice maize-legume intercropping (maize + bean or cowpea) to diversify nutrition, fix nitrogen, and reduce total input costs. Maintain soil cover with residues after harvest.",
+      traits:      ["Improved Variety", "Drought-Tolerant", "Widely Adapted", "Staple Crop"],
+    };
+  }
+
+  /* ── Alternative Crop Options ───────────────────────────────────
+     Returns 2–3 crop objects from the existing profile functions,
+     excluding the primary recommendation, with an added altConsider
+     field explaining why each is worth considering.
+     All text is derived solely from the existing crop profile data.
+  */
+  function getAlternatives(risk, soil, water, nutrition, primaryCrop) {
+
+    /* Helper: attach an altConsider note to a crop object */
+    function withNote(cropFn, note) {
+      var c = cropFn();
+      c.altConsider = note;
+      return c;
+    }
+
+    /* Helper: filter out the primary recommendation by crop name */
+    function exclude(list) {
+      return list.filter(function(c) {
+        return c.crop !== primaryCrop;
+      }).slice(0, 3);
+    }
+
+    /* ── Drought ── */
+    if (risk === "drought") {
+      return exclude([
+        withNote(millet,      "Pearl millet thrives in low-rainfall, high-temperature environments with minimal inputs, making it a strong fallback option where water is scarce."),
+        withNote(sorghum,     "Sorghum's deep root system and ability to resume growth after drought-induced dormancy make it a dependable alternative on sandy or degraded soils."),
+        withNote(cowpea,      "Cowpea combines drought tolerance with nitrogen fixation, offering both food and soil improvement — a practical companion or rotation option."),
+        withNote(sweetPotato, "Orange-fleshed sweet potato is drought-tolerant once established and provides vitamin A, making it especially relevant where micronutrient deficiency is a concern."),
+      ]);
+    }
+
+    /* ── Flooding ── */
+    if (risk === "flood") {
+      return exclude([
+        withNote(floodRice,    "Sub1A flood-tolerant rice varieties survive complete submergence and perform identically to standard rice under normal conditions — a low-risk adaptation option."),
+        withNote(taro,         "Taro is naturally adapted to waterlogged soils and provides multiple edible plant parts, maximising food output per plant in flood-prone environments."),
+        withNote(aquaticLegume,"Winged bean tolerates high moisture and offers exceptional whole-plant protein, making it a nutritionally dense complement in waterlogged conditions."),
+      ]);
+    }
+
+    /* ── Extreme Heat ── */
+    if (risk === "heat") {
+      return exclude([
+        withNote(sorghum,     "Sorghum tolerates high temperatures and has a deep root system that accesses subsoil moisture, providing a calorie-dense alternative under heat stress."),
+        withNote(cowpea,      "Cowpea tolerates high temperatures and low rainfall, fixes nitrogen, and provides high protein — a heat-resilient legume worth considering alongside a cereal."),
+        withNote(millet,      "Pearl millet's short growing cycle makes it well suited to unpredictable heat-affected rainfall windows, reducing exposure to the most stressful growth periods."),
+        withNote(sweetPotato, "Sweet potato is resistant to moderate heat stress and produces reliably even in degraded soils, with a nutritional profile that addresses vitamin A deficiency."),
+      ]);
+    }
+
+    /* ── Salinity ── */
+    if (risk === "salinity") {
+      return exclude([
+        withNote(barley,       "Barley is the most salt-tolerant major cereal and has a short growing cycle, making it a practical caloric staple option on saline soils."),
+        withNote(quinoa,       "Quinoa tolerates high salinity and provides a complete protein with dense micronutrients, addressing multiple nutritional gaps in saline-affected farming systems."),
+        withNote(mangroveRice, "Salinity-tolerant coastal rice landraces are bred for tidal flood plains with salt intrusion, providing a familiar staple where standard rice fails."),
+      ]);
+    }
+
+    /* ── Frost / Cold ── */
+    if (risk === "frost") {
+      return exclude([
+        withNote(potato,    "Cold-hardy potato varieties maintain yields under frost risk in highland climates and are calorie-dense with a good vitamin C profile."),
+        withNote(broadBean, "Faba bean is frost-tolerant, fixes nitrogen, and provides high protein — a strong cool-season legume complement to cereal crops."),
+        withNote(quinoa,    "Quinoa tolerates frost and poor alkaline soils, providing a complete protein and dense micronutrient profile suited to cold highland farming systems."),
+      ]);
+    }
+
+    /* ── Erosion ── */
+    if (risk === "erosion") {
+      return exclude([
+        withNote(moringa,   "Moringa's deep roots stabilise eroded soils while its leaves provide year-round nutrition, addressing both soil restoration and micronutrient deficiency simultaneously."),
+        withNote(cassava,   "Cassava's deep root system holds soil on slopes and produces reliably on degraded, low-fertility soils, providing a calorie-dense staple during the restoration period."),
+        withNote(coverCrop, "The vetiver + mucuna cover crop system prioritises soil stabilisation and nitrogen restoration, preparing degraded land for food crop production within 1–2 seasons."),
+        withNote(cowpea,    "Cowpea can be intercropped during erosion recovery to provide ground cover, fix nitrogen, and supply protein while soil health is being rebuilt."),
+      ]);
+    }
+
+    /* ── Default (no specific risk) ── */
+    return exclude([
+      withNote(maize,       "Drought-tolerant maize varieties are widely adapted and remain the most important staple for general food security needs in the absence of an acute climate risk."),
+      withNote(cowpea,      "Cowpea pairs well with maize as an intercrop, adding protein and nitrogen fixation to a primarily caloric farming system."),
+      withNote(sweetPotato, "Orange-fleshed sweet potato adds vitamin A and dietary diversity as a complementary root crop alongside a cereal-based system."),
+      withNote(sorghum,     "Sorghum is a drought-tolerant, calorie-dense cereal that performs well across a wide range of soil types and rainfall conditions."),
+    ]);
+  }
+
+  /* ── Field Sustainability Assessment ────────────────────────────
+     Returns data for the four indicator tiles and a summary sentence.
+     Derives all content from existing RISK_META, NUTRITION_META,
+     water value, soil value, and the recommended crop profile.
+     No numerical scores, percentages, or scientific thresholds.
+  */
+  function getAssessmentData(risk, soil, water, nutrition, rm, nm, rec) {
+
+    /* ── Tile 1: Climate Risk ── */
+    var riskStatus, riskBody;
+    if (rm.level === "High") {
+      riskStatus = { text: "High Priority", cls: "status-high" };
+    } else {
+      riskStatus = { text: "Moderate Priority", cls: "status-medium" };
+    }
+    riskBody = rm.text;
+
+    /* ── Tile 2: Water Condition ── */
+    var waterValue, waterStatus, waterBody;
+    if (water === "scarce") {
+      waterValue  = "Scarce (rainfed, drought-prone)";
+      waterStatus = { text: "Water-Constrained", cls: "status-high" };
+      waterBody   = "Limited water availability increases vulnerability to drought stress. Crop selection and conservation practices that reduce moisture loss are key priorities.";
+    } else if (water === "moderate") {
+      waterValue  = "Moderate (seasonal rain)";
+      waterStatus = { text: "Moderate", cls: "status-medium" };
+      waterBody   = "Seasonal rainfall requires aligning planting windows with available moisture. Water-retention practices and drought-tolerant varieties provide resilience during dry spells.";
+    } else if (water === "adequate") {
+      waterValue  = "Adequate (irrigation access)";
+      waterStatus = { text: "Adequate", cls: "status-low" };
+      waterBody   = "Irrigation access supports a wider range of crop options. Efficient water application at critical growth stages avoids waste and reduces the risk of soil nutrient leaching.";
+    } else {
+      waterValue  = "Excess / Flood-prone";
+      waterStatus = { text: "Excess Water", cls: "status-blue" };
+      waterBody   = "Excess or flooding conditions require flood-tolerant crop varieties and drainage or raised-bed management to protect root zones and prevent crop loss.";
+    }
+
+    /* ── Tile 3: Nutrition Priority ── */
+    var nutrBody;
+    if (nutrition === "caloric") {
+      nutrBody = "Caloric insufficiency is the primary concern. High-yield staple cereals and energy-dense legumes are prioritised to close the caloric gap.";
+    } else if (nutrition === "protein") {
+      nutrBody = "Protein deficiency is the priority concern. Legumes and protein-rich grains directly address this gap while also supporting soil health through nitrogen fixation.";
+    } else if (nutrition === "iron") {
+      nutrBody = "Iron-deficiency anaemia is the priority concern, particularly for women and children. Biofortified crops and legumes rich in non-haem iron are the recommended response.";
+    } else if (nutrition === "vitamin_a") {
+      nutrBody = "Vitamin A deficiency is the priority concern. Orange-fleshed and dark leafy crops with high provitamin A content are the most targeted response.";
+    } else if (nutrition === "zinc") {
+      nutrBody = "Zinc deficiency affects immune function and child development. Zinc-biofortified crops and legumes are recommended alongside dietary diversification.";
+    } else {
+      nutrBody = "The goal is overall dietary balance and diversity. A combination of staple cereals, legumes, and vegetables addresses both macronutrient and micronutrient needs.";
+    }
+
+    /* ── Tile 4: Sustainability Focus ── */
+    var sustainValue, sustainStatus, sustainBody;
+    if (risk === "drought" || water === "scarce") {
+      sustainValue  = "Water-Use Efficiency";
+      sustainStatus = { text: "Key Focus", cls: "status-teal" };
+      sustainBody   = "Scarce water conditions make water-use efficiency the leading sustainability priority. Conservation tillage, mulching, and drought-tolerant crop selection are the core response.";
+    } else if (risk === "flood" || water === "excess") {
+      sustainValue  = "Climate Adaptation";
+      sustainStatus = { text: "Key Focus", cls: "status-teal" };
+      sustainBody   = "Flood risk and excess water make climate adaptation practices — including flood-tolerant varieties, raised-bed systems, and drainage management — the sustainability priority.";
+    } else if (risk === "erosion" || soil === "sandy" || soil === "silt") {
+      sustainValue  = "Soil Conservation";
+      sustainStatus = { text: "Key Focus", cls: "status-teal" };
+      sustainBody   = "Erosion-prone or light-textured soils make soil conservation the leading focus. Ground cover, contour planting, and nitrogen-fixing cover crops restore and protect soil health.";
+    } else if (risk === "salinity") {
+      sustainValue  = "Resource Efficiency";
+      sustainStatus = { text: "Key Focus", cls: "status-teal" };
+      sustainBody   = "Saline conditions require efficient use of irrigation water to avoid further salt accumulation, combined with salt-tolerant crop selection and organic matter management.";
+    } else if (nutrition === "protein" || nutrition === "iron" || nutrition === "zinc" || nutrition === "vitamin_a") {
+      sustainValue  = "Crop Diversification";
+      sustainStatus = { text: "Key Focus", cls: "status-teal" };
+      sustainBody   = "Addressing micronutrient deficiency is best supported by crop diversification — integrating biofortified varieties, legumes, and vegetables alongside the staple cereal.";
+    } else {
+      sustainValue  = "Sustainable Farming Practices";
+      sustainStatus = { text: "Key Focus", cls: "status-teal" };
+      sustainBody   = "The selected conditions support a focus on long-term sustainable farming practices: crop rotation, intercropping with legumes, residue retention, and soil organic matter management.";
+    }
+
+    /* ── Assessment Summary sentence ── */
+    var summary = "This analysis identifies " + rm.label + " as the primary climate risk (" + rm.level.toLowerCase() + " priority), " +
+      waterStatus.text.toLowerCase() + " water conditions, and " + nm.label.toLowerCase() + " as the nutrition priority. " +
+      "The recommended crop — " + rec.crop.split(" (")[0] + " (" + rec.category + ") — addresses these conditions. " +
+      "The main sustainability focus for this context is " + sustainValue.toLowerCase() + ".";
+
+    return {
+      risk:    { value: rm.label,     status: riskStatus,    body: riskBody    },
+      water:   { value: waterValue,   status: waterStatus,   body: waterBody   },
+      nutr:    { value: nm.label,     status: { text: "Priority Nutrition Need", cls: "status-purple" }, body: nutrBody },
+      sustain: { value: sustainValue, status: sustainStatus, body: sustainBody },
+      summary: summary
+    };
+  }
+
+  /* ── Sustainability Guidance ────────────────────────────────────
+     Returns 3–4 card objects {icon, title, body} tailored to the
+     user's water availability, climate risk, soil type, nutritional
+     concern, and recommended crop.
+     All text uses existing project terminology only.
+     No numerical thresholds or guaranteed outcomes are stated.
+  */
+  function getSustainabilityCards(risk, soil, water, nutrition, rec) {
+    var cards = [];
+
+    /* ── 1. Water-use card — driven by water availability ── */
+    if (water === "scarce") {
+      cards.push({
+        icon: "💧",
+        title: "Water-Use Efficiency",
+        body: "With scarce water availability, prioritise mulching around crop bases to reduce evaporation from the soil surface. Consider conservation agriculture practices such as minimum tillage to preserve residual moisture. Collect rainwater where possible for supplemental use during dry spells."
+      });
+    } else if (water === "excess") {
+      cards.push({
+        icon: "💧",
+        title: "Excess Water Management",
+        body: "Where flooding or excess water is a concern, raised-bed cultivation and drainage channels help protect root zones. Avoid compaction by limiting heavy traffic on wet soils. Flood-adapted crops paired with elevated planting techniques reduce waterlogging damage."
+      });
+    } else if (water === "moderate") {
+      cards.push({
+        icon: "💧",
+        title: "Seasonal Water Management",
+        body: "With seasonal rainfall, time planting windows to align the most water-demanding growth stages with expected rain. Organic matter additions improve soil water retention between rainfall events. Where feasible, small water-harvesting structures such as half-moons or tied ridges can extend available moisture."
+      });
+    } else {
+      cards.push({
+        icon: "💧",
+        title: "Irrigation Efficiency",
+        body: "Where irrigation access is available, apply water at the crop root zone rather than broadcasting broadly. Deficit irrigation strategies — applying water at the most critical growth stages — can reduce overall water use while supporting crop development. Monitor soil moisture to avoid over-watering and nutrient leaching."
+      });
+    }
+
+    /* ── 2. Soil conservation card — driven by soil type and risk ── */
+    if (soil === "sandy" || risk === "erosion") {
+      cards.push({
+        icon: "🌍",
+        title: "Soil Conservation",
+        body: "Sandy and erosion-prone soils benefit from permanent ground cover — intercropping, mulching, and cover crops reduce wind and water erosion. Planting along contour lines and establishing grass or legume strips between crop rows helps bind the topsoil. Building organic matter over time improves water retention and nutrient availability."
+      });
+    } else if (soil === "clay") {
+      cards.push({
+        icon: "🌍",
+        title: "Clay Soil Management",
+        body: "Clay soils can become waterlogged and compacted. Avoid working the soil when it is wet. Incorporating organic matter such as compost or crop residues gradually improves structure and drainage over successive seasons. Deep-rooted crops can help break up compaction layers naturally."
+      });
+    } else if (soil === "peaty") {
+      cards.push({
+        icon: "🌍",
+        title: "Organic Soil Conservation",
+        body: "Peaty soils are nutrient-rich but can be prone to subsidence and oxidation if drained aggressively. Maintain soil cover at all times. Minimal tillage preserves the soil structure and reduces carbon loss. Prioritise crops that can be established with low disturbance."
+      });
+    } else if (soil === "chalky") {
+      cards.push({
+        icon: "🌍",
+        title: "Alkaline Soil Management",
+        body: "Chalky and alkaline soils can limit nutrient availability for some crops. Additions of organic matter help buffer pH over time and improve the availability of iron, manganese, and zinc. Select crops with demonstrated alkaline-soil tolerance, such as quinoa or barley, to reduce amendment needs."
+      });
+    } else {
+      cards.push({
+        icon: "🌍",
+        title: "Soil Health Maintenance",
+        body: "Loamy and silty soils respond well to crop rotation, cover cropping, and organic matter additions. Rotating between cereals and legumes improves nitrogen balance and reduces build-up of soil-borne pests. Retaining crop residues as surface mulch after harvest reduces erosion and supports soil biology."
+      });
+    }
+
+    /* ── 3. Climate adaptation card — driven by risk ── */
+    if (risk === "drought") {
+      cards.push({
+        icon: "☀️",
+        title: "Drought Adaptation",
+        body: "Selecting drought-tolerant varieties is the most important first step. Complement this with conservation tillage and residue retention to reduce moisture loss. Stagger planting dates across small plots to spread risk across different rainfall windows. Intercropping with a nitrogen-fixing legume such as cowpea improves soil health without additional water demand."
+      });
+    } else if (risk === "flood") {
+      cards.push({
+        icon: "🌊",
+        title: "Flood Risk Adaptation",
+        body: "In flood-prone areas, raised-bed or mounded planting systems protect crops during inundation periods. Maintaining vegetative cover on field boundaries and waterways reduces erosion during flood events. Diversifying across flood-tolerant and quick-maturing varieties reduces the risk of total crop loss in a single season."
+      });
+    } else if (risk === "heat") {
+      cards.push({
+        icon: "🌡️",
+        title: "Heat Stress Adaptation",
+        body: "Heat-tolerant crop varieties with short growing cycles reduce exposure during the most stressful periods. Planting before or after peak temperature seasons where feasible, and using mulch to keep root-zone temperatures lower, can protect the crop. Agroforestry shade trees offer a longer-term microclimate benefit on smallholder plots."
+      });
+    } else if (risk === "salinity") {
+      cards.push({
+        icon: "🧂",
+        title: "Salinity Management",
+        body: "Pair salt-tolerant crop selection with soil management practices that reduce salt accumulation over time. Where irrigation is used, leaching fractions — applying additional water to flush salts below the root zone — can reduce electrical conductivity. Organic matter amendments help improve soil structure and the capacity of the soil to manage salt stress."
+      });
+    } else if (risk === "frost") {
+      cards.push({
+        icon: "❄️",
+        title: "Frost Risk Adaptation",
+        body: "Choose frost-hardy varieties suited to the local altitude and season length. Timing of planting is critical — avoid placing frost-sensitive growth stages during known frost windows. Windbreaks and agroforestry structures provide some microclimate protection. Mulching around plant bases offers additional insulation during cold nights."
+      });
+    } else if (risk === "erosion") {
+      cards.push({
+        icon: "🌿",
+        title: "Erosion Control Practices",
+        body: "Permanent ground cover is the most effective erosion control. Establish vetiver hedgerows or grass strips along contours before introducing food crops on degraded slopes. Cover cropping with nitrogen-fixing species such as mucuna restores organic matter and soil structure. Transition to food-producing systems gradually as soil health improves."
+      });
+    }
+
+    /* ── 4. Crop diversification / nutrition / sustainable practice card ── */
+    if (nutrition === "protein" || nutrition === "iron" || nutrition === "zinc" || nutrition === "vitamin_a") {
+      cards.push({
+        icon: "🌾",
+        title: "Crop Diversification for Nutrition",
+        body: "Addressing micronutrient deficiency through a single crop is most effective when paired with dietary diversity across the farming system. Consider integrating a legume alongside the recommended cereal or root crop — legumes provide protein, iron, and zinc while also improving soil nitrogen. Home garden plots with leafy vegetables and biofortified varieties extend nutritional coverage across the household."
+      });
+    } else if (nutrition === "caloric") {
+      cards.push({
+        icon: "🌾",
+        title: "Sustainable Staple Production",
+        body: "For caloric food security, combining a resilient staple cereal with an intercropped legume is a low-input way to improve both yield stability and protein content of the diet. Retaining crop residues and practicing crop rotation reduces the need for external inputs over successive seasons, supporting long-term productivity."
+      });
+    } else {
+      cards.push({
+        icon: "🌾",
+        title: "Dietary Diversity and Balance",
+        body: "A balanced diet goal is best supported by diversifying the farming system across crop types. Combine the recommended crop with at least one legume for protein and one leafy vegetable or biofortified root crop for micronutrients. Intercropping and home garden systems are practical ways to achieve dietary diversity within a small land area."
+      });
+    }
+
+    /* ── Optional 5th card: crop-specific sustainable practice from existing rec.sustain ── */
+    if (rec && rec.sustain) {
+      cards.push({
+        icon: "♻️",
+        title: "Recommended Crop Practice",
+        body: rec.sustain
+      });
+    }
+
+    /* Return the first 4 cards — ensures the grid stays compact */
+    return cards.slice(0, 4);
+  }
+
+  /* ── UI Logic ──────────────────────────────────────────────────── */
+  function analyze() {
+    const location     = document.getElementById("location").value.trim();
+    const soil         = document.getElementById("soil").value;
+    const water        = document.getElementById("water").value;
+    const risk         = document.getElementById("risk").value;
+    const nutrition    = document.getElementById("nutrition").value;
+    const currentCrop  = document.getElementById("current_crop").value.trim();
+
+    if (!risk || !nutrition || !soil || !water) {
+      alert("Please complete all dropdown fields before analysing.");
+      return;
+    }
+
+    const rec = recommend(risk, soil, water, nutrition);
+    const rm  = RISK_META[risk];
+    const nm  = NUTRITION_META[nutrition];
+
+    /* ── Field Sustainability Assessment ──────────────────────────── */
+    var ad = getAssessmentData(risk, soil, water, nutrition, rm, nm, rec);
+    document.getElementById("assessRiskValue").textContent   = ad.risk.value;
+    document.getElementById("assessRiskStatus").textContent  = ad.risk.status.text;
+    document.getElementById("assessRiskStatus").className    = "assess-tile-status " + ad.risk.status.cls;
+    document.getElementById("assessRiskBody").textContent    = ad.risk.body;
+    document.getElementById("assessWaterValue").textContent  = ad.water.value;
+    document.getElementById("assessWaterStatus").textContent = ad.water.status.text;
+    document.getElementById("assessWaterStatus").className   = "assess-tile-status " + ad.water.status.cls;
+    document.getElementById("assessWaterBody").textContent   = ad.water.body;
+    document.getElementById("assessNutrValue").textContent   = ad.nutr.value;
+    document.getElementById("assessNutrStatus").textContent  = ad.nutr.status.text;
+    document.getElementById("assessNutrStatus").className    = "assess-tile-status " + ad.nutr.status.cls;
+    document.getElementById("assessNutrBody").textContent    = ad.nutr.body;
+    document.getElementById("assessSustainValue").textContent  = ad.sustain.value;
+    document.getElementById("assessSustainStatus").textContent = ad.sustain.status.text;
+    document.getElementById("assessSustainStatus").className   = "assess-tile-status " + ad.sustain.status.cls;
+    document.getElementById("assessSustainBody").textContent   = ad.sustain.body;
+    document.getElementById("assessSummary").textContent       = ad.summary;
+
+    /* Populate summary chips */
+    document.getElementById("cropTag").textContent       = rec.category;
+    document.getElementById("chipRiskVal").textContent   = rm.level + " — " + rm.label;
+    document.getElementById("chipNutrition").textContent = nm.label;
+    document.getElementById("chipCategory").textContent  = rec.category;
+
+    const chipRisk = document.getElementById("chipRisk");
+    chipRisk.className = "summary-chip chip-risk-" + rm.level.toLowerCase();
+
+    /* Populate details */
+    document.getElementById("detailRisk").textContent       = rm.text;
+    document.getElementById("detailNutrition").textContent  = nm.text;
+    document.getElementById("detailWhy").textContent        = rec.why;
+    document.getElementById("detailNutBenefit").textContent = rec.nutBenefit;
+    document.getElementById("detailResilience").textContent = rec.resilience;
+    document.getElementById("detailSustain").textContent    = rec.sustain;
+
+    /* Crop tag */
+    document.getElementById("cropTag").textContent = rec.crop.split(" (")[0];
+
+    /* Trait badges */
+    const colours  = ["badge-green", "badge-blue", "badge-orange"];
+    const badgeDiv = document.getElementById("traitBadges");
+    badgeDiv.innerHTML = rec.traits.map((t, i) =>
+      `<span class="badge ${colours[i % colours.length]}">${t}</span>`
+    ).join("");
+
+    /* Knowledge retrieval — query built from the risk label and nutrition label */
+    const kbQuery   = rm.label + " " + nm.label;
+    const kbResults = searchKnowledgeBase(kbQuery, 2);
+    const kbEntries = document.getElementById("kbEntries");
+    kbEntries.innerHTML = kbResults.map(r =>
+      `<div class="kb-entry">` +
+        `<div class="kb-topic">${r.entry.topic}</div>` +
+        `<div class="kb-desc">${r.entry.description}</div>` +
+      `</div>`
+    ).join("");
+
+    /* ── Explainable AI Decision Analysis ─────────────────────────── */
+
+    /* Lookup labels for water and soil (used in XAI display) */
+    const waterLabels = {
+      scarce:   "Scarce (rainfed, drought-prone)",
+      moderate: "Moderate (seasonal rain)",
+      adequate: "Adequate (irrigation access)",
+      excess:   "Excess / Flood-prone",
+    };
+    const soilLabels = {
+      sandy:  "Sandy",
+      clay:   "Clay",
+      loamy:  "Loamy",
+      silt:   "Silty",
+      peaty:  "Peaty",
+      chalky: "Chalky / Alkaline",
+    };
+    const waterLabel = waterLabels[water] || water;
+    const soilLabel  = soilLabels[soil]  || soil;
+
+    /* 1. Climate Risk */
+    document.getElementById("xaiRiskValue").textContent =
+      rm.label + " (Risk level: " + rm.level + ")";
+    document.getElementById("xaiRiskExplain").textContent =
+      "The selected climate risk — " + rm.label + " — is the primary driver of the recommendation rule. " +
+      rm.text + " This risk steered the prototype toward crops in the '" + rec.category + "' category.";
+
+    /* 2. Water Availability */
+    document.getElementById("xaiWaterValue").textContent = waterLabel;
+    document.getElementById("xaiWaterExplain").textContent =
+      "Water availability (" + waterLabel + ") is considered when evaluating climate-resilient crop options. " +
+      "The prototype uses the water setting alongside the climate risk to confirm that the recommended crop " +
+      "is appropriate for the available moisture conditions in the farm environment.";
+
+    /* 3. Nutrition Priority */
+    document.getElementById("xaiNutritionValue").textContent = nm.label;
+    document.getElementById("xaiNutritionExplain").textContent =
+      "The nutritional concern (" + nm.label + ") refined the recommendation within the climate risk group. " +
+      nm.text + " The retrieved knowledge-base entries for this analysis include topics directly linked " +
+      "to this nutritional concern, confirming the connection between the input and the retrieved evidence.";
+
+    /* 4. Soil Consideration */
+    document.getElementById("xaiSoilValue").textContent = soilLabel;
+    document.getElementById("xaiSoilExplain").textContent =
+      "Soil type (" + soilLabel + ") is considered as an input in the prototype decision process. " +
+      "For certain climate risks (e.g. drought with sandy soil, erosion with sandy or silty soil), " +
+      "the soil type directly influences which crop is selected within a risk group.";
+
+    /* 5. RAG Evidence — topics from the actual kbResults already computed above */
+    const ragTopicsDiv = document.getElementById("xaiRagTopics");
+    if (kbResults.length > 0) {
+      ragTopicsDiv.innerHTML = kbResults.map(r =>
+        `<span class="xai-rag-badge">${r.entry.topic}</span>`
+      ).join("");
+    } else {
+      ragTopicsDiv.innerHTML = "<span style='font-size:13px;color:#6b7280;'>No matching topics retrieved.</span>";
+    }
+
+    /* 6. Final Decision Explanation */
+    const cropShortName = rec.crop.split(" (")[0];
+    document.getElementById("xaiFinalExplain").textContent =
+      "Given the climate risk of " + rm.label + ", water availability described as '" + waterLabel + "', " +
+      "a nutritional priority of " + nm.label + ", and " + soilLabel + " soil conditions, " +
+      "the prototype selected " + cropShortName + " (" + rec.category + "). " +
+      "This crop was chosen because it is adapted to the identified climate stress and aligns " +
+      "with the nutritional goal of addressing " + nm.label.toLowerCase() + ". " +
+      "The knowledge base provided supporting evidence through the topic(s): " +
+      (kbResults.length > 0 ? kbResults.map(r => r.entry.topic).join(", ") : "none matched") + ".";
+
+    /* ── Alternative Crop Options ──────────────────────────────────── */
+    const altList = getAlternatives(risk, soil, water, nutrition, rec.crop);
+    const altCards = document.getElementById("altCards");
+    altCards.innerHTML = altList.map(function(a) {
+      return '<div class="alt-card">' +
+        '<div class="alt-card-header">' +
+          '<span class="alt-card-name">' + a.crop.split(" (")[0] + '</span>' +
+          '<span class="alt-card-category">' + a.category + '</span>' +
+        '</div>' +
+        '<div class="alt-field-label">Climate Resilience</div>' +
+        '<div class="alt-field-text">' + a.resilience + '</div>' +
+        '<div class="alt-field-label">Nutritional Relevance</div>' +
+        '<div class="alt-field-text">' + a.nutBenefit + '</div>' +
+        '<div class="alt-consider">' + a.altConsider + '</div>' +
+      '</div>';
+    }).join("");
+
+    /* ── Sustainability Guidance ───────────────────────────────────── */
+    var sustData  = getSustainabilityCards(risk, soil, water, nutrition, rec);
+    var sustCards = document.getElementById("sustCards");
+    sustCards.innerHTML = sustData.map(function(c) {
+      return '<div class="sust-card">' +
+        '<div class="sust-card-header">' +
+          '<span class="sust-card-icon">' + c.icon + '</span>' +
+          '<span class="sust-card-title">' + c.title + '</span>' +
+        '</div>' +
+        '<div class="sust-card-body">' + c.body + '</div>' +
+      '</div>';
+    }).join("");
+
+    /* Show results */
+    const resultsEl = document.getElementById("results");
+    resultsEl.style.display = "block";
+    resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+</script>
+
+</body>
+</html>
